@@ -936,3 +936,180 @@ export const otherbox: GeometryData = {
     zmax: 15.0,
   },
 };
+
+export const sampleTriangularPrism: GeometryData = {
+  version: 3,
+  parts: [
+    {
+      id: "/Group/Workplane(Solid)",
+      type: "shapes",
+      subtype: "solid",
+      name: "TriangularPrism(Solid)",
+      shape: {
+        vertices: [
+          // Front triangle (y=0)
+          -0.5, 0, -0.5,   // 0
+           0.5, 0, -0.5,   // 1
+           0.0, 0.5, -0.5, // 2 (top front)
+          // Back triangle (y=1)
+          -0.5, 0, 0.5,    // 3
+           0.5, 0, 0.5,    // 4
+           0.0, 0.5, 0.5   // 5 (top back)
+        ],
+        triangles: [
+          // Front face
+          0, 1, 2,
+          // Back face
+          3, 5, 4,
+          // Bottom rectangle
+          0, 3, 4,
+          0, 4, 1,
+          // Left rectangle
+          0, 2, 5,
+          0, 5, 3,
+          // Right rectangle
+          1, 4, 5,
+          1, 5, 2
+        ],
+        normals: [
+          // Approximate flat normals
+          0, 0, -1, 0, 0, -1, 0, 0, -1,   // Front
+          0, 0, 1, 0, 0, 1, 0, 0, 1,      // Back
+          0, -1, 0, 0, -1, 0, 0, -1, 0,   // Bottom
+          -0.866, 0.5, 0, -0.866, 0.5, 0, -0.866, 0.5, 0, // Left
+          0.866, 0.5, 0, 0.866, 0.5, 0, 0.866, 0.5, 0     // Right
+        ],
+        edges: [
+          // Front triangle edges
+          -0.5, 0, -0.5, 0.5, 0, -0.5,
+           0.5, 0, -0.5, 0.0, 0.5, -0.5,
+           0.0, 0.5, -0.5, -0.5, 0, -0.5,
+          // Back triangle edges
+          -0.5, 0, 0.5, 0.5, 0, 0.5,
+           0.5, 0, 0.5, 0.0, 0.5, 0.5,
+           0.0, 0.5, 0.5, -0.5, 0, 0.5,
+          // Side edges
+          -0.5, 0, -0.5, -0.5, 0, 0.5,
+           0.5, 0, -0.5, 0.5, 0, 0.5,
+           0.0, 0.5, -0.5, 0.0, 0.5, 0.5
+        ],
+        obj_vertices: [
+          -0.5, 0, -0.5,
+           0.5, 0, -0.5,
+           0.0, 0.5, -0.5,
+          -0.5, 0, 0.5,
+           0.5, 0, 0.5,
+           0.0, 0.5, 0.5
+        ],
+        face_types: [0, 0, 0, 0, 0],
+        edge_types: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        triangles_per_face: [1, 1, 2, 2, 2],
+        segments_per_edge: [1, 1, 1, 1, 1, 1, 1, 1, 1],
+      },
+      state: [1, 1],
+      color: "#3cb44b",
+      alpha: 1.0,
+      texture: null,
+      loc: [
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+      ],
+      renderback: false,
+      accuracy: null,
+      bb: null,
+    },
+  ],
+  loc: [
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0, 1.0],
+  ],
+  name: "Group",
+  id: "/Group",
+  normal_len: 0,
+  bb: { xmin: -0.5, xmax: 0.5, ymin: 0, ymax: 0.5, zmin: -0.5, zmax: 0.5 },
+};
+
+export const sampleSquarePyramid: GeometryData = {
+  version: 3,
+  parts: [
+    {
+      id: "/Group/Workplane(Solid)",
+      type: "shapes",
+      subtype: "solid",
+      name: "SquarePyramid(Solid)",
+      shape: {
+        vertices: [
+          // Base square
+          -0.5, 0, -0.5, // 0
+           0.5, 0, -0.5, // 1
+           0.5, 0,  0.5, // 2
+          -0.5, 0,  0.5, // 3
+          // Apex
+           0.0, 0.75, 0.0 // 4
+        ],
+        triangles: [
+          // Base (two triangles)
+          0, 1, 2,
+          0, 2, 3,
+          // Side faces
+          0, 1, 4,
+          1, 2, 4,
+          2, 3, 4,
+          3, 0, 4
+        ],
+        normals: [
+          // Base normals
+          0, -1, 0, 0, -1, 0, 0, -1, 0,
+          0, -1, 0, 0, -1, 0, 0, -1, 0,
+          // Side normals (approximate)
+          0, 0.707, -0.707, 0, 0.707, -0.707, 0, 0.707, -0.707,
+          0.707, 0.707, 0, 0.707, 0.707, 0, 0.707, 0.707, 0,
+          0, 0.707, 0.707, 0, 0.707, 0.707, 0, 0.707, 0.707,
+          -0.707, 0.707, 0, -0.707, 0.707, 0, -0.707, 0.707, 0
+        ],
+        edges: [
+          // Base edges
+          -0.5, 0, -0.5, 0.5, 0, -0.5,
+           0.5, 0, -0.5, 0.5, 0,  0.5,
+           0.5, 0,  0.5, -0.5, 0, 0.5,
+          -0.5, 0,  0.5, -0.5, 0, -0.5,
+          // Side edges
+          -0.5, 0, -0.5, 0.0, 0.75, 0.0,
+           0.5, 0, -0.5, 0.0, 0.75, 0.0,
+           0.5, 0,  0.5, 0.0, 0.75, 0.0,
+          -0.5, 0,  0.5, 0.0, 0.75, 0.0
+        ],
+        obj_vertices: [
+          -0.5, 0, -0.5,
+           0.5, 0, -0.5,
+           0.5, 0,  0.5,
+          -0.5, 0,  0.5,
+           0.0, 0.75, 0.0
+        ],
+        face_types: [0, 0, 0, 0, 0],
+        edge_types: [0, 0, 0, 0, 0, 0, 0, 0],
+        triangles_per_face: [2, 1, 1, 1, 1],
+        segments_per_edge: [1, 1, 1, 1, 1, 1, 1, 1],
+      },
+      state: [1, 1],
+      color: "#ff7f0e",
+      alpha: 1.0,
+      texture: null,
+      loc: [
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+      ],
+      renderback: false,
+      accuracy: null,
+      bb: null,
+    },
+  ],
+  loc: [
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0, 1.0],
+  ],
+  name: "Group",
+  id: "/Group",
+  normal_len: 0,
+  bb: { xmin: -0.5, xmax: 0.5, ymin: 0, ymax: 0.75, zmin: -0.5, zmax: 0.5 },
+};

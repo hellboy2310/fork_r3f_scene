@@ -26,6 +26,7 @@ export interface ParsedGeometry {
     totalFaces: number;
     totalVertices: number;
     totalTriangles: number;
+    totalEdges: number;
   };
 }
 
@@ -272,13 +273,51 @@ export class GeometryParser {
   }
 
   private static calculateStats(parts: ParsedGeometry['parts']): ParsedGeometry['stats'] {
-    return parts.reduce((stats, part) => ({
+  const quant = (n: number) => Math.round(n * 1e6); // 1e-6 tolerance
+
+  const uniqueVerticesPerPart = (part: ParsedGeometry['parts'][0]) => {
+    const set = new Set<string>();
+
+    if (part.edges && part.edges.length >= 6) {
+      // Prefer edges: endpoints cover all used vertices without per-face duplication
+      for (let i = 0; i < part.edges.length; i += 6) {
+        const x1 = part.edges[i],     y1 = part.edges[i + 1], z1 = part.edges[i + 2];
+        const x2 = part.edges[i + 3], y2 = part.edges[i + 4], z2 = part.edges[i + 5];
+        set.add(`${quant(x1)},${quant(y1)},${quant(z1)}`);
+        set.add(`${quant(x2)},${quant(y2)},${quant(z2)}`);
+      }
+    } else {
+      // Fallback: de-dup across all mesh vertices
+      part.meshes.forEach(m => {
+        for (let i = 0; i < m.vertices.length; i += 3) {
+          const x = m.vertices[i], y = m.vertices[i + 1], z = m.vertices[i + 2];
+          set.add(`${quant(x)},${quant(y)},${quant(z)}`);
+        }
+      });
+    }
+
+    return set.size;
+  };
+
+  return parts.reduce((stats, part) => {
+    const faces = part.meshes.length;
+
+    const trisInMeshes = part.meshes.reduce((sum, mesh) => sum + (mesh.vertices.length / 9), 0);
+
+    const uniqueVerts = uniqueVerticesPerPart(part);
+
+    const edgeCount = (part.edges?.length ?? 0) / 6; 
+
+    return {
       totalParts: stats.totalParts + 1,
-      totalFaces: stats.totalFaces + part.meshes.length,
-      totalVertices: stats.totalVertices + part.meshes.reduce((sum, mesh) => sum + mesh.vertices.length / 3, 0),
-      totalTriangles: stats.totalTriangles + part.meshes.reduce((sum, mesh) => sum + mesh.vertices.length / 9, 0)
-    }), { totalParts: 0, totalFaces: 0, totalVertices: 0, totalTriangles: 0 });
-  }
+      totalFaces: stats.totalFaces + faces,
+      totalVertices: stats.totalVertices + uniqueVerts,
+      totalTriangles: stats.totalTriangles + trisInMeshes,
+      totalEdges: stats.totalEdges + edgeCount
+    };
+  }, { totalParts: 0, totalFaces: 0, totalVertices: 0, totalTriangles: 0, totalEdges: 0 });
+}
+
 
   private static createFallback(): ParsedGeometry {
     return {
