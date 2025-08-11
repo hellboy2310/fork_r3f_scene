@@ -364,8 +364,6 @@ function GeometryScene({ geometryData, faceVisibility, faceColors, edgeVisibilit
         />
       ))}
       
-      {/* Add coordinate system helper */}
-      {/* <axesHelper args={[1]} /> */}
       
       {/* Show error message if parsing failed */}
       {error && (
