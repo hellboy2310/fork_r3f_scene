@@ -365,7 +365,7 @@ function GeometryScene({ geometryData, faceVisibility, faceColors, edgeVisibilit
       ))}
       
       {/* Add coordinate system helper */}
-      <axesHelper args={[1]} />
+      {/* <axesHelper args={[1]} /> */}
       
       {/* Show error message if parsing failed */}
       {error && (
@@ -551,29 +551,43 @@ const Experience = ({
             <directionalLight position={[10, 10, 5]} intensity={1} />
 
             <PivotControls
-                anchor={pivotData[pivotDataIndex].position}
-                rotation={pivotData[pivotDataIndex].rotation}
-                depthTest={false}
-                disableAxes={!isTransform}
-                disableSliders={!isTransform}
-                disableRotations={!isTransform}
-                disableScaling
-                scale={0.5}
-            >
-                <group ref={meshRef}>
-                  <GeometryScene 
-                    geometryData={geometryData} 
-                    faceVisibility={faceVisibility} 
-                    faceColors={faceColors}
-                    edgeVisibility={edgeVisibility}
-                    edgeColors={edgeColors}
-                    highlightedEdges={highlightedEdges}
-                    vertexVisibility={vertexVisibility}
-                    vertexColors={vertexColors}
-                    highlightedVertices={highlightedVertices}
-                  />
-                </group>
-            </PivotControls>
+              anchor={pivotData[pivotDataIndex].position}
+              rotation={pivotData[pivotDataIndex].rotation}
+              depthTest={false}
+              disableAxes={!isTransform}
+              disableSliders={!isTransform}
+              disableRotations={!isTransform}
+              disableScaling
+              scale={0.5}>
+              <group   ref={meshRef}
+              onPointerMove={handlePointerMove}
+              onClick={() => setIsSelected(true)}>
+                  {geometryData && Object.keys(geometryData).length > 0 ? (
+                      <GeometryScene 
+                          geometryData={geometryData} 
+                          faceVisibility={faceVisibility} 
+                          faceColors={faceColors}
+                          edgeVisibility={edgeVisibility}
+                          edgeColors={edgeColors}
+                          highlightedEdges={highlightedEdges}
+                          vertexVisibility={vertexVisibility}
+                          vertexColors={vertexColors}
+                          highlightedVertices={highlightedVertices}
+                      />
+                  ) : (
+                      <mesh
+                          ref={meshRef}
+                          onPointerMove={handlePointerMove}
+                          onClick={() => setIsSelected(true)}
+                      >
+                          <boxGeometry args={[1, 1, 1]} />
+                          <meshStandardMaterial color={isSelected ? "#34cdff" : "orange"} />
+                          <Edges linewidth={4} color="white" visible={isSelected} />
+                      </mesh>
+                  )}
+              </group>
+          </PivotControls>
+
 
             <OrbitControls  enableDamping={false} minDistance={1} maxDistance={100} makeDefault />
             <GizmoHelper alignment="bottom-right" margin={[80, 80]}>

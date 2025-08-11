@@ -340,30 +340,68 @@ export function ControlPanel({
     }
   };
 
+  const toggleAllFacesVisibility = () => {
+      const allVisible = faceVisibility.every(v => v);
+      const newVis = new Array(stats.faces).fill(!allVisible);
+      if (onFaceVisibilityChange) onFaceVisibilityChange(newVis);
+    };
+
+    const toggleAllEdgesVisibility = () => {
+      const allVisible = edgeVisibility.every(v => v);
+      const newVis = new Array(stats.edges).fill(!allVisible);
+      if (onEdgeVisibilityChange) onEdgeVisibilityChange(newVis);
+    };
+
+    const toggleAllVerticesVisibility = () => {
+      const allVisible = vertexVisibility.every(v => v);
+      const newVis = new Array(stats.vertices).fill(!allVisible);
+      if (onVertexVisibilityChange) onVertexVisibilityChange(newVis);
+    };
+
+
   const SectionHeader = ({
-    title,
-    icon: Icon,
-    count,
-    isExpanded,
-    onToggle,
-  }: {
-    title: string;
-    icon: any;
-    count: number;
-    isExpanded: boolean;
-    onToggle: () => void;
-  }) => (
-    <div
-      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 cursor-pointer select-none"
-      onClick={onToggle}
-    >
-      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      <Icon size={16} className="text-blue-600" />
-      <span className="text-sm font-medium text-gray-700">{title}</span>
-      <span className="text-xs text-gray-500 ml-auto">({count})</span>
-      <Eye size={14} className="text-gray-400" />
-    </div>
-  );
+  title,
+  icon: Icon,
+  count,
+  isExpanded,
+  onToggle,
+  isAllVisible,
+  onToggleVisibility
+}: {
+  title: string;
+  icon: any;
+  count: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  isAllVisible?: boolean;
+  onToggleVisibility?: () => void;
+}) => (
+  <div
+    className="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
+    onClick={onToggle}
+  >
+    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+    <Icon size={16} className="text-blue-600" />
+    <span className="text-sm font-medium">{title}</span>
+    <span className="text-xs text-gray-500 ml-auto">({count})</span>
+    {onToggleVisibility && (
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // so clicking eye doesn’t expand/collapse
+          onToggleVisibility();
+        }}
+        className="p-1 rounded hover:bg-accent"
+      >
+        {isAllVisible ? (
+          <Eye size={14} className="text-gray-600" />
+        ) : (
+          <EyeOff size={14} className="text-gray-400" />
+        )}
+      </button>
+    )}
+  </div>
+);
+
 
   // Update expanded state based on mobile/desktop on mount
   useEffect(() => {
@@ -517,6 +555,8 @@ export function ControlPanel({
                             count={stats.faces}
                             isExpanded={expandedSections.faces}
                             onToggle={() => toggleSection('faces')}
+                            isAllVisible={faceVisibility.every(v => v)}
+                            onToggleVisibility={toggleAllFacesVisibility}
                           />
 
                           {expandedSections.faces && (
@@ -530,7 +570,7 @@ export function ControlPanel({
                                       className="flex items-center gap-2 px-3 py-2 text-sm"
                                     >
                                       <Triangle size={14} className="text-green-600" />
-                                      <span className="text-gray-700">
+                                      <span className="text-gray-100">
                                         faces_{currentFaceIndex}
                                       </span>
                                       <div className="ml-auto flex items-center gap-2">
@@ -576,6 +616,8 @@ export function ControlPanel({
                             count={stats.edges}
                             isExpanded={expandedSections.edges}
                             onToggle={() => toggleSection('edges')}
+                            isAllVisible={edgeVisibility.every(v => v)}
+                            onToggleVisibility={toggleAllEdgesVisibility}
                           />
 
                           {expandedSections.edges && (
@@ -586,7 +628,7 @@ export function ControlPanel({
                                   className="flex items-center gap-2 px-3 py-2 text-sm"
                                 >
                                   <Triangle size={14} className="text-orange-500" />
-                                  <span className="text-gray-700">edge_{i}</span>
+                                  <span className="text-gray-100">edge_{i}</span>
                                   <div className="ml-auto flex items-center gap-2">
                                     <button
                                       onClick={() => toggleEdgeVisibility(i)}
@@ -623,6 +665,8 @@ export function ControlPanel({
                             count={stats.vertices}
                             isExpanded={expandedSections.vertices}
                             onToggle={() => toggleSection('vertices')}
+                            isAllVisible={vertexVisibility.every(v => v)}
+                            onToggleVisibility={toggleAllVerticesVisibility}
                           />
 
                           {expandedSections.vertices && (
@@ -633,8 +677,8 @@ export function ControlPanel({
                                   className="flex items-center gap-2 px-3 py-2 text-sm"
                                 >
                                   <MapPin size={14} className="text-purple-500" />
-                                  <span className="text-gray-700">
-                                    vertex_{i} ({vertex.x}, {vertex.y}, {vertex.z})
+                                  <span className="text-gray-100">
+                                    vertex_{i} 
                                   </span>
                                   <div className="ml-auto flex items-center gap-2">
                                     <button
@@ -661,23 +705,7 @@ export function ControlPanel({
                                       className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
                                       title="Change vertex color"
                                     />
-                                    <button
-                                      onClick={() => toggleVertexHighlight(i)}
-                                      className={`px-2 py-1 text-xs rounded ${
-                                        highlightedVertices[i]
-                                          ? 'bg-yellow-100 text-yellow-700'
-                                          : 'bg-gray-100 text-gray-600'
-                                      }`}
-                                      title={
-                                        highlightedVertices[i]
-                                          ? 'Remove highlight'
-                                          : 'Highlight vertex'
-                                      }
-                                    >
-                                      {highlightedVertices[i]
-                                        ? 'Highlighted'
-                                        : 'Highlight'}
-                                    </button>
+                                    
                                   </div>
                                 </div>
                               ))}
