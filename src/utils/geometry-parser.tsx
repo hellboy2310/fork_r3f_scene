@@ -31,8 +31,9 @@ export interface ParsedGeometry {
 }
 
 export class GeometryParser {
+  private static readonly MAX_DEPTH = 10;
+  
   static parse(geometryData: any): ParsedGeometry {
-    
     if (!geometryData || typeof geometryData !== 'object') {
       return this.createFallback();
     }
@@ -47,11 +48,11 @@ export class GeometryParser {
     };
   }
 
-   /**
-   * Extracts parts from the raw geometry data by checking common property names.
-   * Falls back to a single basic part if no match is found.
+  /**
+   * Enhanced part extraction with deep traversal support
    */
   private static extractParts(data: any): any[] {
+    // First, try the original approach for common structures
     for (const key of ['parts', 'objects', 'meshes', 'geometries', 'shapes']) {
       if (Array.isArray(data[key]) && data[key].length > 0) {
         return data[key];
@@ -63,35 +64,160 @@ export class GeometryParser {
       return [data];
     }
     
+    // Deep search for parts arrays
+    const foundParts = this.deepSearchForParts(data, 0);
+    if (foundParts.length > 0) {
+      return foundParts;
+    }
+    
+    // Deep search for individual geometry objects
+    const geometryObjects = this.deepSearchForGeometry(data, 0);
+    if (geometryObjects.length > 0) {
+      return geometryObjects;
+    }
+    
     return [this.createBasicPart()];
   }
 
   /**
-   * Checks if an object contains geometry-related arrays (vertices, faces, etc.).
-  */
-  private static hasGeometryData(obj: any): boolean {
-    return ['vertices', 'triangles', 'faces', 'indices', 'positions']
-      .some(key => Array.isArray(obj[key]) && obj[key].length > 0);
+   * Recursively search for arrays that might contain parts
+   */
+  private static deepSearchForParts(obj: any, depth: number): any[] {
+    if (depth >= this.MAX_DEPTH || !obj || typeof obj !== 'object') {
+      return [];
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        // Check if this array contains geometry-like objects
+        if (value.some(item => this.hasGeometryData(item))) {
+          return value;
+        }
+        // Check if this array contains objects with nested geometry
+        const nestedResults = value.flatMap(item => this.deepSearchForParts(item, depth + 1));
+        if (nestedResults.length > 0) {
+          return nestedResults;
+        }
+      } else if (typeof value === 'object') {
+        const results = this.deepSearchForParts(value, depth + 1);
+        if (results.length > 0) {
+          return results;
+        }
+      }
+    }
+
+    return [];
   }
 
   /**
-   * Parses a single part's geometry and metadata into the ParsedGeometry format.
-  */
+   * Recursively search for individual geometry objects
+   */
+  private static deepSearchForGeometry(obj: any, depth: number): any[] {
+    if (depth >= this.MAX_DEPTH || !obj || typeof obj !== 'object') {
+      return [];
+    }
+
+    const results: any[] = [];
+
+    if (this.hasGeometryData(obj)) {
+      results.push(obj);
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        value.forEach(item => {
+          results.push(...this.deepSearchForGeometry(item, depth + 1));
+        });
+      } else if (typeof value === 'object') {
+        results.push(...this.deepSearchForGeometry(value, depth + 1));
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Enhanced geometry data detection
+   */
+  private static hasGeometryData(obj: any): boolean {
+    if (!obj || typeof obj !== 'object') return false;
+
+    const geometryKeys = ['vertices', 'triangles', 'faces', 'indices', 'positions', 'points'];
+    
+    // Check direct properties
+    if (geometryKeys.some(key => Array.isArray(obj[key]) && obj[key].length > 0)) {
+      return true;
+    }
+
+    // Check common nested locations
+    const nestedLocations = ['geometry', 'shape', 'mesh', 'data'];
+    for (const location of nestedLocations) {
+      if (obj[location] && typeof obj[location] === 'object') {
+        if (geometryKeys.some(key => Array.isArray(obj[location][key]) && obj[location][key].length > 0)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Enhanced array getter with deep property search
+   */
+  private static getArray(obj: any, keys: string[]): number[] | null {
+    // Original approach
+    for (const key of keys) {
+      const value = obj[key] || obj.shape?.[key] || obj.geometry?.[key];
+      if (Array.isArray(value) && value.length > 0) {
+        return value.map(v => typeof v === 'number' ? v : 0);
+      }
+    }
+
+    // Deep search approach
+    const found = this.deepSearchForArray(obj, keys, 0);
+    if (found) {
+      return found.map(v => typeof v === 'number' ? v : 0);
+    }
+
+    return null;
+  }
+
+  /**
+   * Recursively search for arrays by key names
+   */
+  private static deepSearchForArray(obj: any, targetKeys: string[], depth: number): number[] | null {
+    if (depth >= this.MAX_DEPTH || !obj || typeof obj !== 'object') {
+      return null;
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (targetKeys.includes(key) && Array.isArray(value) && value.length > 0) {
+        return value;
+      }
+      
+      if (typeof value === 'object' && !Array.isArray(value)) {
+        const result = this.deepSearchForArray(value, targetKeys, depth + 1);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  }
+
+  // Rest of the methods remain the same as in your original implementation
   private static parsePart(part: any, index: number): ParsedGeometry['parts'][0] {
     const id = part.id || part.name || `part_${index}`;
     const name = part.name || part.id || `Part ${index}`;
     
-    // Get geometry data
     const vertices = this.getArray(part, ['vertices', 'positions', 'coords']) || [];
     const triangles = this.getArray(part, ['triangles', 'indices', 'faces']) || [];
     const normals = this.getArray(part, ['normals', 'vertex_normals']) || 
                    this.generateNormals(vertices, triangles);
     
-    // Create meshes - group by faces if available
     const faceGroups = this.getFaceGroups(part, triangles);
     const meshes = this.createMeshes(vertices, triangles, normals, faceGroups, part);
     
-    // Generate edges
     const edges = this.getArray(part, ['edges', 'wireframe']) || 
                   this.generateEdges(vertices, triangles);
     
@@ -104,20 +230,6 @@ export class GeometryParser {
     };
   }
 
-  private static getArray(obj: any, keys: string[]): number[] | null {
-    for (const key of keys) {
-      const value = obj[key] || obj.shape?.[key] || obj.geometry?.[key];
-      if (Array.isArray(value) && value.length > 0) {
-        return value.map(v => typeof v === 'number' ? v : 0);
-      }
-    }
-    return null;
-  }
-
-  /**
-  * Creates face groups from triangles to help split meshes logically.
-  * If no group info is provided, defaults to grouping by quads.
-  */
   private static getFaceGroups(part: any, triangles: number[]): Array<{start: number, count: number}> {
     const trianglesPerFace = this.getArray(part, ['triangles_per_face', 'faceCounts']);
     
@@ -130,7 +242,6 @@ export class GeometryParser {
       });
     }
     
-    // Default: group every 2 triangles (common for quads)
     const totalTriangles = triangles.length / 3;
     const groups = [];
     for (let i = 0; i < totalTriangles; i += 2) {
@@ -139,9 +250,6 @@ export class GeometryParser {
     return groups;
   }
 
-  /**
-  * Builds mesh objects for each face group, including vertices, normals, color, and alpha.
-  */
   private static createMeshes(
     vertices: number[], 
     triangles: number[], 
@@ -162,14 +270,12 @@ export class GeometryParser {
         for (let j = 0; j < 3; j++) {
           const vertexIndex = triangles[triangleIndex + j] * 3;
           
-          // Add vertex
           faceVertices.push(
             vertices[vertexIndex] || 0,
             vertices[vertexIndex + 1] || 0,
             vertices[vertexIndex + 2] || 0
           );
           
-          // Add normal
           faceNormals.push(
             normals[vertexIndex] || 0,
             normals[vertexIndex + 1] || 0,
@@ -209,7 +315,6 @@ export class GeometryParser {
       });
     }
     
-    // Normalize accumulated normals
     for (let i = 0; i < normals.length; i += 3) {
       const length = Math.sqrt(normals[i]**2 + normals[i + 1]**2 + normals[i + 2]**2);
       if (length > 0) {
@@ -226,9 +331,6 @@ export class GeometryParser {
     return normals;
   }
 
-  /**
-   * Generates a list of unique edges from triangles to represent wireframe lines.
-  */
   private static generateEdges(vertices: number[], triangles: number[]): number[] {
     const edges: number[] = [];
     const edgeSet = new Set<string>();
@@ -291,51 +393,45 @@ export class GeometryParser {
   }
 
   private static calculateStats(parts: ParsedGeometry['parts']): ParsedGeometry['stats'] {
-  const quant = (n: number) => Math.round(n * 1e6); // 1e-6 tolerance
+    const quant = (n: number) => Math.round(n * 1e6);
 
-  const uniqueVerticesPerPart = (part: ParsedGeometry['parts'][0]) => {
-    const set = new Set<string>();
+    const uniqueVerticesPerPart = (part: ParsedGeometry['parts'][0]) => {
+      const set = new Set<string>();
 
-    if (part.edges && part.edges.length >= 6) {
-      // Prefer edges: endpoints cover all used vertices without per-face duplication
-      for (let i = 0; i < part.edges.length; i += 6) {
-        const x1 = part.edges[i],     y1 = part.edges[i + 1], z1 = part.edges[i + 2];
-        const x2 = part.edges[i + 3], y2 = part.edges[i + 4], z2 = part.edges[i + 5];
-        set.add(`${quant(x1)},${quant(y1)},${quant(z1)}`);
-        set.add(`${quant(x2)},${quant(y2)},${quant(z2)}`);
-      }
-    } else {
-      // Fallback: de-dup across all mesh vertices
-      part.meshes.forEach(m => {
-        for (let i = 0; i < m.vertices.length; i += 3) {
-          const x = m.vertices[i], y = m.vertices[i + 1], z = m.vertices[i + 2];
-          set.add(`${quant(x)},${quant(y)},${quant(z)}`);
+      if (part.edges && part.edges.length >= 6) {
+        for (let i = 0; i < part.edges.length; i += 6) {
+          const x1 = part.edges[i], y1 = part.edges[i + 1], z1 = part.edges[i + 2];
+          const x2 = part.edges[i + 3], y2 = part.edges[i + 4], z2 = part.edges[i + 5];
+          set.add(`${quant(x1)},${quant(y1)},${quant(z1)}`);
+          set.add(`${quant(x2)},${quant(y2)},${quant(z2)}`);
         }
-      });
-    }
+      } else {
+        part.meshes.forEach(m => {
+          for (let i = 0; i < m.vertices.length; i += 3) {
+            const x = m.vertices[i], y = m.vertices[i + 1], z = m.vertices[i + 2];
+            set.add(`${quant(x)},${quant(y)},${quant(z)}`);
+          }
+        });
+      }
 
-    return set.size;
-  };
-
-  return parts.reduce((stats, part) => {
-    const faces = part.meshes.length;
-
-    const trisInMeshes = part.meshes.reduce((sum, mesh) => sum + (mesh.vertices.length / 9), 0);
-
-    const uniqueVerts = uniqueVerticesPerPart(part);
-
-    const edgeCount = (part.edges?.length ?? 0) / 6; 
-
-    return {
-      totalParts: stats.totalParts + 1,
-      totalFaces: stats.totalFaces + faces,
-      totalVertices: stats.totalVertices + uniqueVerts,
-      totalTriangles: stats.totalTriangles + trisInMeshes,
-      totalEdges: stats.totalEdges + edgeCount
+      return set.size;
     };
-  }, { totalParts: 0, totalFaces: 0, totalVertices: 0, totalTriangles: 0, totalEdges: 0 });
-}
 
+    return parts.reduce((stats, part) => {
+      const faces = part.meshes.length;
+      const trisInMeshes = part.meshes.reduce((sum, mesh) => sum + (mesh.vertices.length / 9), 0);
+      const uniqueVerts = uniqueVerticesPerPart(part);
+      const edgeCount = (part.edges?.length ?? 0) / 6;
+
+      return {
+        totalParts: stats.totalParts + 1,
+        totalFaces: stats.totalFaces + faces,
+        totalVertices: stats.totalVertices + uniqueVerts,
+        totalTriangles: stats.totalTriangles + trisInMeshes,
+        totalEdges: stats.totalEdges + edgeCount
+      };
+    }, { totalParts: 0, totalFaces: 0, totalVertices: 0, totalTriangles: 0, totalEdges: 0 });
+  }
 
   private static createFallback(): ParsedGeometry {
     return {
@@ -358,7 +454,7 @@ export class GeometryParser {
         center: new THREE.Vector3(0, 0, 0),
         size: new THREE.Vector3(1, 1, 0)
       },
-      stats: { totalParts: 1, totalFaces: 1, totalVertices: 3, totalTriangles: 1 }
+      stats: { totalParts: 1, totalFaces: 1, totalVertices: 3, totalTriangles: 1, totalEdges: 0 }
     };
   }
 

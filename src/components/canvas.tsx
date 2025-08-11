@@ -9,7 +9,7 @@ import controls from '@/constants/controls'
 
 import Experience from './Experience'
 import { ControlPanel } from './control-panel'
-import { sampleBox, sampleSquarePyramid, sampleTriangularPrism } from '@/constants/constants'
+import { sampleBox, sampleSquarePyramid, sampleTriangularPrism, box } from '@/constants/constants'
 import { GeometryParser } from '@/utils/geometry-parser'
 import { GeometryData } from '@/types/geometry'
 
@@ -53,6 +53,7 @@ export function SimpleCanvas(): JSX.Element {
     selectedBox === 'box1' ? sampleBox :
     selectedBox === 'box2' ? sampleTriangularPrism :
     selectedBox === 'box3' ? sampleSquarePyramid :
+    selectedBox === 'box4' ? box :
     undefined
 
   useEffect(() => {
@@ -118,6 +119,8 @@ export function SimpleCanvas(): JSX.Element {
             <option value="box1">box1</option>
             <option value="box2">box2</option>
             <option value="box3">box3</option>
+            <option value="box4">box4</option>
+
           </select>
         </div>
         <Canvas>
