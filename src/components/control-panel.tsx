@@ -1,32 +1,27 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { X, Menu, CornerDownLeft, ChevronDown, ChevronRight, Eye, Zap, MapPin, Triangle, EyeOff } from "lucide-react"
-import {
-  Box,
-  Grid3X3,
-  Play,
-  BarChart3,
-} from "lucide-react"
-import { Rnd } from 'react-rnd'
+import { X, CornerDownLeft, ChevronDown, Eye, Zap, MapPin, Triangle, EyeOff, PanelLeftClose, ChevronRight, Box, Grid3X3, Play, BarChart3, Menu, Grip } from "lucide-react"
 import Link from 'next/link'
 import { GeometryData, GeometryStats } from "@/types/geometry"
 import { GeometryParser, ParsedGeometry } from "@/utils/geometry-parser"
+import { Rnd } from 'react-rnd'
 
-type Project = {
-  id: number
-  name: string
-  slug: string
-  description: string | null
-  status: string
-  relativePath: string
-  createdAt: Date
-  updatedAt: Date
-}
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { is } from "@react-three/fiber/dist/declarations/src/core/utils"
+
 
 type ControlPanelProps = {
-  project?: Project | null;
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  heightOffset?: number
   geometryData?: GeometryData;
   faceVisibility?: boolean[];
   faceColors?: string[];
@@ -46,7 +41,8 @@ type ControlPanelProps = {
   onHighlightedVerticesChange?: (h: boolean[]) => void;
 }
 
-const controlSections = [
+
+const ControlPanelSections = [
   {
     title: "Geometry",
     icon: Box,
@@ -90,12 +86,16 @@ const controlSections = [
   },
 ]
 
-export function ControlPanel({ 
-  project, 
-  geometryData, 
-  faceVisibility = [], 
-  faceColors = [], 
-  onFaceVisibilityChange, 
+export function ControlPanel({
+  x = 16,
+  y = 16,
+  width = 300,
+  height,
+  heightOffset = 500,
+  geometryData,
+  faceVisibility = [],
+  faceColors = [],
+  onFaceVisibilityChange,
   onFaceColorsChange,
   edgeVisibility = [],
   edgeColors = [],
@@ -110,14 +110,17 @@ export function ControlPanel({
   onVertexColorsChange,
   onHighlightedVerticesChange
 }: ControlPanelProps) {
-  const isMobile = useIsMobile()
+  const isMobile = useIsMobile();
+  const [isVisible, setIsVisible] = useState(true)
+  const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800)
+  const calculatedHeight = height ?? windowHeight - heightOffset
   const [isExpanded, setIsExpanded] = useState(true)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    "Geometry": true, 
+    "Geometry": true,
     "Mesh": false,
     "Simulation": false,
     "Analysis": false,
-    "Scene Hierarchy": true, // Add Scene Hierarchy to openSections
+    "Scene Hierarchy": true,
   })
   const [expandedSections, setExpandedSections] = useState({
     workplane: true,
@@ -134,6 +137,15 @@ export function ControlPanel({
     vertices: 0,
     triangles: 0,
   });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowHeight(window.innerHeight)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     try {
@@ -341,72 +353,70 @@ export function ControlPanel({
   };
 
   const toggleAllFacesVisibility = () => {
-      const allVisible = faceVisibility.every(v => v);
-      const newVis = new Array(stats.faces).fill(!allVisible);
-      if (onFaceVisibilityChange) onFaceVisibilityChange(newVis);
-    };
+    const allVisible = faceVisibility.every(v => v);
+    const newVis = new Array(stats.faces).fill(!allVisible);
+    if (onFaceVisibilityChange) onFaceVisibilityChange(newVis);
+  };
 
-    const toggleAllEdgesVisibility = () => {
-      const allVisible = edgeVisibility.every(v => v);
-      const newVis = new Array(stats.edges).fill(!allVisible);
-      if (onEdgeVisibilityChange) onEdgeVisibilityChange(newVis);
-    };
+  const toggleAllEdgesVisibility = () => {
+    const allVisible = edgeVisibility.every(v => v);
+    const newVis = new Array(stats.edges).fill(!allVisible);
+    if (onEdgeVisibilityChange) onEdgeVisibilityChange(newVis);
+  };
 
-    const toggleAllVerticesVisibility = () => {
-      const allVisible = vertexVisibility.every(v => v);
-      const newVis = new Array(stats.vertices).fill(!allVisible);
-      if (onVertexVisibilityChange) onVertexVisibilityChange(newVis);
-    };
+  const toggleAllVerticesVisibility = () => {
+    const allVisible = vertexVisibility.every(v => v);
+    const newVis = new Array(stats.vertices).fill(!allVisible);
+    if (onVertexVisibilityChange) onVertexVisibilityChange(newVis);
+  };
 
 
   const SectionHeader = ({
-  title,
-  icon: Icon,
-  count,
-  isExpanded,
-  onToggle,
-  isAllVisible,
-  onToggleVisibility
-}: {
-  title: string;
-  icon: any;
-  count: number;
-  isExpanded: boolean;
-  onToggle: () => void;
-  isAllVisible?: boolean;
-  onToggleVisibility?: () => void;
-}) => (
-  <div
-    className="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
-    onClick={onToggle}
-  >
-    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-    <Icon size={16} className="text-blue-600" />
-    <span className="text-sm font-medium">{title}</span>
-    <span className="text-xs text-gray-500 ml-auto">({count})</span>
-    {onToggleVisibility && (
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // so clicking eye doesn’t expand/collapse
-          onToggleVisibility();
-        }}
-        className="p-1 rounded hover:bg-accent"
-      >
-        {isAllVisible ? (
-          <Eye size={14} className="text-gray-600" />
-        ) : (
-          <EyeOff size={14} className="text-gray-400" />
-        )}
-      </button>
-    )}
-  </div>
-);
+    title,
+    icon: Icon,
+    count,
+    isExpanded,
+    onToggle,
+    isAllVisible,
+    onToggleVisibility
+  }: {
+    title: string;
+    icon: any;
+    count: number;
+    isExpanded: boolean;
+    onToggle: () => void;
+    isAllVisible?: boolean;
+    onToggleVisibility?: () => void;
+  }) => (
+    <div
+      className="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
+      onClick={onToggle}
+    >
+      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      <Icon size={16} className="text-blue-600" />
+      <span className="text-sm font-medium">{title}</span>
+      <span className="text-xs text-gray-500 ml-auto">({count})</span>
+      {onToggleVisibility && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // so clicking eye doesn’t expand/collapse
+            onToggleVisibility();
+          }}
+          className="p-1 rounded hover:bg-accent"
+        >
+          {isAllVisible ? (
+            <Eye size={14} className="text-gray-600" />
+          ) : (
+            <EyeOff size={14} className="text-gray-400" />
+          )}
+        </button>
+      )}
+    </div>
+  );
 
 
-  // Update expanded state based on mobile/desktop on mount
-  useEffect(() => {
-    setIsExpanded(!isMobile)
-  }, [isMobile])
+
+
 
   let parsed;
   try {
@@ -417,311 +427,249 @@ export function ControlPanel({
 
   let globalFaceIndex = 0;
 
-  if (!isExpanded) {
+  if (!isVisible || !isExpanded) {
     return (
-      <Rnd
-        default={{
-          x: 16,
-          y: 16,
-          width: 40,
-          height: 40,
-        }}
-        enableResizing={false}
-        bounds="parent"
-        dragHandleClassName="drag-handle"
-        style={{ zIndex: 100 }}
+      <button
+        onClick={() => setIsVisible(true)}
+        className="fixed top-4 left-4 p-2 bg-card border rounded-lg shadow-lg hover:bg-muted/50 transition-colors z-50"
       >
-        <button
-          onClick={() => setIsExpanded(true)}
-          className="w-10 h-10 rounded-full shadow-lg text-primary hover:bg-primary hover:text-primary-foreground drag-handle cursor-move border border-border flex items-center justify-center transition-colors"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </Rnd>
+        <Menu className="h-4 w-4 text-muted-foreground" />
+      </button>
     )
   }
-
   return (
     <Rnd
-      default={{
-        x: 16,
-        y: 16,
-        width: 320,
-        height: 600,
+      default={{ x, y, width, height: calculatedHeight }}
+      enableResizing={{
+        bottomRight: true,
       }}
-      minWidth={250}
-      minHeight={200}
-      maxWidth={600}
-      maxHeight={800}
-      bounds="parent"
       dragHandleClassName="drag-handle"
       style={{ zIndex: 100 }}
     >
-      <div className="w-full h-full shadow-lg relative flex flex-col border border-border bg-card rounded-lg">
-        <div className="drag-handle cursor-move p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              {project && (
-                <Link href="/dashboard" className="p-1 hover:bg-accent rounded transition-colors">
-                  <CornerDownLeft className="h-4 w-4" />
-                </Link>
-              )}
-              <h3 className="text-sm font-medium">
-                {project ? project.name : 'Control Panel'}
-              </h3>
-            </div>
+<div className="h-full w-full bg-card/50 border rounded-lg shadow-lg backdrop-blur-sm">
+        <div className="h-8 bg-muted/30 rounded-t-lg border-b px-3 flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">Control Panel</span>
+
+          <div className="drag-handle cursor-move px-3 py-1 hover:bg-muted/50 rounded transition-colors flex items-center justify-center">
+            <Grip className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" />
           </div>
+
           <button
-            onClick={() => setIsExpanded(false)}
-            className="absolute top-3 right-3 h-6 w-6 hover:bg-accent rounded transition-colors flex items-center justify-center"
+            onClick={() => setIsVisible(false)}
+            className="p-2 hover:bg-muted/50 rounded transition-colors"
           >
-            <X className="h-4 w-4" />
+            <PanelLeftClose className="h-4 w-4 text-muted-foreground/60" />
           </button>
         </div>
-        <div className="p-0 flex-1 overflow-hidden">
-          <div className="h-full overflow-auto">
-            <div className="px-4 pb-4">
-              <div className="space-y-1">
-                {/* Control Sections */}
-                {controlSections.map((section) => (
-                  <div key={section.title}>
-                    <button
-                      className="w-full px-2 py-2 hover:bg-accent rounded-md flex items-center justify-between transition-colors"
-                      onClick={() => setOpenSections(prev => ({...prev, [section.title]: !prev[section.title]}))}
-                    >
-                      <div className="flex items-center">
-                        <section.icon className="h-4 w-4 mr-2" />
-                        <span className="text-left font-medium">{section.title}</span>
+
+        <div className="p-4 h-[calc(100%-2rem)] overflow-auto space-y-2">
+          {/* === Scene Hierarchy (integrated as a Collapsible) === */}
+          <Collapsible
+            open={!!openSections["Scene Hierarchy"]}
+            onOpenChange={(open) =>
+              setOpenSections((prev) => ({ ...prev, "Scene Hierarchy": open }))
+            }
+            className="group/collapsible"
+          >
+            <CollapsibleTrigger className="flex items-center justify-between w-full rounded px-2 py-1.5 hover:bg-muted/40">
+              <div className="flex items-center gap-2">
+                <Box className="h-4 w-4" />
+                <span className="text-sm font-medium">Scene Hierarchy</span>
+              </div>
+              <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <div className="pl-4 space-y-2 pt-2">
+                {/* Workplane */}
+                <SectionHeader
+                  title="Workplane(Solid)"
+                  icon={Box}
+                  count={1}
+                  isExpanded={expandedSections.workplane}
+                  onToggle={() => toggleSection("workplane")}
+                />
+
+                {expandedSections.workplane && (
+                  <div className="ml-4 space-y-2">
+                    {/* Faces */}
+                    <SectionHeader
+                      title="faces"
+                      icon={Box}
+                      count={stats.faces}
+                      isExpanded={expandedSections.faces}
+                      onToggle={() => toggleSection("faces")}
+                      isAllVisible={faceVisibility.every((v) => v)}
+                      onToggleVisibility={toggleAllFacesVisibility}
+                    />
+
+                    {expandedSections.faces && (
+                      <div className="ml-4 space-y-1">
+                        {parsedGeometry?.parts.map((part, partIndex) =>
+                          part.meshes.map((mesh, meshIndex) => {
+                            const currentFaceIndex = globalFaceIndex++;
+                            return (
+                              <div
+                                key={`face-${partIndex}-${meshIndex}`}
+                                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-muted/30"
+                              >
+                                <Triangle size={14} className="text-green-600" />
+                                <span className="text-gray-100">
+                                  faces_{currentFaceIndex}
+                                </span>
+
+                                <div className="ml-auto flex items-center gap-2">
+                                  <button
+                                    onClick={() => toggleFaceVisibility(currentFaceIndex)}
+                                    className="p-1 rounded hover:bg-muted/40"
+                                    title={faceVisibility[currentFaceIndex] ? "Hide face" : "Show face"}
+                                  >
+                                    {faceVisibility[currentFaceIndex] ? (
+                                      <Eye size={14} className="text-gray-600" />
+                                    ) : (
+                                      <EyeOff size={14} className="text-gray-400" />
+                                    )}
+                                  </button>
+
+                                  <input
+                                    type="color"
+                                    value={faceColors[currentFaceIndex] || "#e8b024"}
+                                    onChange={(e) =>
+                                      changeFaceColor(currentFaceIndex, e.target.value)
+                                    }
+                                    className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
+                                    title="Change face color"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
-                      <span className={`transform transition-transform ${openSections[section.title] ? 'rotate-180' : ''}`}>▼</span>
-                    </button>
-                    {openSections[section.title] && (
-                      <div className="pl-6 space-y-1 pb-2">
-                        {section.items.map((item) => (
-                          <a
-                            key={item.title}
-                            href={item.url}
-                            className="w-full justify-start px-2 py-1.5 h-auto text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors block"
+                    )}
+
+                    {/* Edges */}
+                    <SectionHeader
+                      title="edges"
+                      icon={Triangle}
+                      count={stats.edges}
+                      isExpanded={expandedSections.edges}
+                      onToggle={() => toggleSection("edges")}
+                      isAllVisible={edgeVisibility.every((v) => v)}
+                      onToggleVisibility={toggleAllEdgesVisibility}
+                    />
+
+                    {expandedSections.edges && (
+                      <div className="ml-4 space-y-1">
+                        {Array.from({ length: stats.edges }, (_, i) => (
+                          <div
+                            key={`edge-${i}`}
+                            className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-muted/30"
                           >
-                            {item.title}
-                          </a>
+                            <Triangle size={14} className="text-orange-500" />
+                            <span className="text-gray-100">edge_{i}</span>
+
+                            <div className="ml-auto flex items-center gap-2">
+                              <button
+                                onClick={() => toggleEdgeVisibility(i)}
+                                className="p-1 rounded hover:bg-muted/40"
+                                title={edgeVisibility[i] ? "Hide edge" : "Show edge"}
+                              >
+                                {edgeVisibility[i] ? (
+                                  <Eye size={14} className="text-gray-600" />
+                                ) : (
+                                  <EyeOff size={14} className="text-gray-400" />
+                                )}
+                              </button>
+
+                              <input
+                                type="color"
+                                value={edgeColors[i] || "#333333"}
+                                onChange={(e) => changeEdgeColor(i, e.target.value)}
+                                className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
+                                title="Change edge color"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Vertices */}
+                    <SectionHeader
+                      title="vertices"
+                      icon={MapPin}
+                      count={stats.vertices}
+                      isExpanded={expandedSections.vertices}
+                      onToggle={() => toggleSection("vertices")}
+                      isAllVisible={vertexVisibility.every((v) => v)}
+                      onToggleVisibility={toggleAllVerticesVisibility}
+                    />
+
+                    {expandedSections.vertices && (
+                      <div className="ml-4 space-y-1">
+                        {getCornerVertices().map((vertex, i) => (
+                          <div
+                            key={`vertex-${i}`}
+                            className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-muted/30"
+                          >
+                            <MapPin size={14} className="text-purple-500" />
+                            <span className="text-gray-100">vertex_{i}</span>
+
+                            <div className="ml-auto flex items-center gap-2">
+                              <button
+                                onClick={() => toggleVertexVisibility(i)}
+                                className="p-1 rounded hover:bg-muted/40"
+                                title={vertexVisibility[i] ? "Hide vertex" : "Show vertex"}
+                              >
+                                {vertexVisibility[i] ? (
+                                  <Eye size={14} className="text-gray-600" />
+                                ) : (
+                                  <EyeOff size={14} className="text-gray-400" />
+                                )}
+                              </button>
+
+                              <input
+                                type="color"
+                                value={vertexColors[i] || "#ff0000"}
+                                onChange={(e) => changeVertexColor(i, e.target.value)}
+                                className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
+                                title="Change vertex color"
+                              />
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
                   </div>
-                ))}
-                
-                {/* Scene Hierarchy Section - Now at the same level */}
-                <div>
-                  <button
-                    className="w-full px-2 py-2 rounded-md flex items-center justify-between transition-colors"
-                    onClick={() =>
-                      setOpenSections((prev) => ({
-                        ...prev,
-                        'Scene Hierarchy': !prev['Scene Hierarchy'],
-                      }))
-                    }
-                  >
-                    <div className="flex items-center">
-                      <Box className="h-4 w-4 mr-2" />
-                      <span className="text-left font-medium">Scene Hierarchy</span>
-                    </div>
-                    <span
-                      className={`transform transition-transform ${
-                        openSections['Scene Hierarchy'] ? 'rotate-180' : ''
-                      }`}
-                    >
-                      ▼
-                    </span>
-                  </button>
-
-                  {openSections['Scene Hierarchy'] && (
-                    <div className="pl-6 space-y-1 pb-2">
-                      {/* Workplane Section */}
-                      <SectionHeader
-                        title="Workplane(Solid)"
-                        icon={Box}
-                        count={1}
-                        isExpanded={expandedSections.workplane}
-                        onToggle={() => toggleSection('workplane')}
-                      />
-
-                      {expandedSections.workplane && (
-                        <div className="ml-4 space-y-1">
-                          {/* Faces Section */}
-                          <SectionHeader
-                            title="faces"
-                            icon={Box}
-                            count={stats.faces}
-                            isExpanded={expandedSections.faces}
-                            onToggle={() => toggleSection('faces')}
-                            isAllVisible={faceVisibility.every(v => v)}
-                            onToggleVisibility={toggleAllFacesVisibility}
-                          />
-
-                          {expandedSections.faces && (
-                            <div className="ml-4 space-y-1">
-                              {parsedGeometry?.parts.map((part, partIndex) =>
-                                part.meshes.map((mesh, meshIndex) => {
-                                  const currentFaceIndex = globalFaceIndex++;
-                                  return (
-                                    <div
-                                      key={`face-${partIndex}-${meshIndex}`}
-                                      className="flex items-center gap-2 px-3 py-2 text-sm"
-                                    >
-                                      <Triangle size={14} className="text-green-600" />
-                                      <span className="text-gray-100">
-                                        faces_{currentFaceIndex}
-                                      </span>
-                                      <div className="ml-auto flex items-center gap-2">
-                                        <button
-                                          onClick={() =>
-                                            toggleFaceVisibility(currentFaceIndex)
-                                          }
-                                          className="p-1 rounded"
-                                          title={
-                                            faceVisibility[currentFaceIndex]
-                                              ? 'Hide face'
-                                              : 'Show face'
-                                          }
-                                        >
-                                          {faceVisibility[currentFaceIndex] ? (
-                                            <Eye size={14} className="text-gray-600" />
-                                          ) : (
-                                            <EyeOff size={14} className="text-gray-400" />
-                                          )}
-                                        </button>
-                                        <input
-                                          type="color"
-                                          value={faceColors[currentFaceIndex] || '#e8b024'}
-                                          onChange={(e) =>
-                                            changeFaceColor(currentFaceIndex, e.target.value)
-                                          }
-                                          className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
-                                          title="Change face color"
-                                        />
-                                       
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-                          )}
-
-                          {/* Edges Section */}
-                          <SectionHeader
-                            title="edges"
-                            icon={Triangle}
-                            count={stats.edges}
-                            isExpanded={expandedSections.edges}
-                            onToggle={() => toggleSection('edges')}
-                            isAllVisible={edgeVisibility.every(v => v)}
-                            onToggleVisibility={toggleAllEdgesVisibility}
-                          />
-
-                          {expandedSections.edges && (
-                            <div className="ml-4 space-y-1">
-                              {Array.from({ length: stats.edges }, (_, i) => (
-                                <div
-                                  key={`edge-${i}`}
-                                  className="flex items-center gap-2 px-3 py-2 text-sm"
-                                >
-                                  <Triangle size={14} className="text-orange-500" />
-                                  <span className="text-gray-100">edge_{i}</span>
-                                  <div className="ml-auto flex items-center gap-2">
-                                    <button
-                                      onClick={() => toggleEdgeVisibility(i)}
-                                      className="p-1 rounded"
-                                      title={
-                                        edgeVisibility[i] ? 'Hide edge' : 'Show edge'
-                                      }
-                                    >
-                                      {edgeVisibility[i] ? (
-                                        <Eye size={14} className="text-gray-600" />
-                                      ) : (
-                                        <EyeOff size={14} className="text-gray-400" />
-                                      )}
-                                    </button>
-                                    <input
-                                      type="color"
-                                      value={edgeColors[i] || '#333333'}
-                                      onChange={(e) =>
-                                        changeEdgeColor(i, e.target.value)
-                                      }
-                                      className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
-                                      title="Change edge color"
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Vertices Section */}
-                          <SectionHeader
-                            title="vertices"
-                            icon={MapPin}
-                            count={stats.vertices}
-                            isExpanded={expandedSections.vertices}
-                            onToggle={() => toggleSection('vertices')}
-                            isAllVisible={vertexVisibility.every(v => v)}
-                            onToggleVisibility={toggleAllVerticesVisibility}
-                          />
-
-                          {expandedSections.vertices && (
-                            <div className="ml-4 space-y-1">
-                              {getCornerVertices().map((vertex, i) => (
-                                <div
-                                  key={`vertex-${i}`}
-                                  className="flex items-center gap-2 px-3 py-2 text-sm"
-                                >
-                                  <MapPin size={14} className="text-purple-500" />
-                                  <span className="text-gray-100">
-                                    vertex_{i} 
-                                  </span>
-                                  <div className="ml-auto flex items-center gap-2">
-                                    <button
-                                      onClick={() => toggleVertexVisibility(i)}
-                                      className="p-1 rounded"
-                                      title={
-                                        vertexVisibility[i]
-                                          ? 'Hide vertex'
-                                          : 'Show vertex'
-                                      }
-                                    >
-                                      {vertexVisibility[i] ? (
-                                        <Eye size={14} className="text-gray-600" />
-                                      ) : (
-                                        <EyeOff size={14} className="text-gray-400" />
-                                      )}
-                                    </button>
-                                    <input
-                                      type="color"
-                                      value={vertexColors[i] || '#ff0000'}
-                                      onChange={(e) =>
-                                        changeVertexColor(i, e.target.value)
-                                      }
-                                      className="w-5 h-5 border border-gray-300 rounded cursor-pointer"
-                                      title="Change vertex color"
-                                    />
-                                    
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
+                )}
               </div>
-            </div>
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* === Rest of your dynamic sections === */}
+          {ControlPanelSections.map((section) => (
+            <Collapsible key={section.title} title={section.title} defaultOpen className="group/collapsible">
+              <CollapsibleTrigger className="flex items-center justify-between w-full rounded px-2 py-1.5 hover:bg-muted/40">
+                {section.title}
+                <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {section.items.map((item) => (
+                  <a
+                    key={item.title}
+                    href={item.url}
+                    className="w-full justify-start px-2 py-1.5 h-auto text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors block"
+                  >
+                    {item.title}
+                  </a>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
         </div>
-      </div>
+      </div>      
+
     </Rnd>
-  )
+  );
 }

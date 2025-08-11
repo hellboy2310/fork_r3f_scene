@@ -1,19 +1,24 @@
 
 'use client'
 
+import React from 'react'
 import { Canvas } from '@react-three/fiber'
 import { KeyboardControls } from '@react-three/drei'
 import { NavigationToolbar } from './navigation-toolbar'
 import { useEffect, useMemo, useState } from 'react'
+import { ThemeToggle } from './theme-toggle'
+import { ViewPanel } from './view-panel'
 import controls from '@/constants/controls'
-
+import { CanvasProvider } from '@/contexts/CanvasContext'
 import Experience from './Experience'
 import { ControlPanel } from './control-panel'
 import { sampleBox, sampleSquarePyramid, sampleTriangularPrism, box } from '@/constants/constants'
 import { GeometryParser } from '@/utils/geometry-parser'
 import { GeometryData } from '@/types/geometry'
 
-export function SimpleCanvas(): JSX.Element {
+export function SimpleCanvas(): React.ReactElement {
+  // Keyboard controls for shortcut key
+
   const [useOrtho, setUseOrtho] = useState<boolean>(false)
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([3, 3, 3])
   const [isTransform, setIsTransform] = useState<boolean>(false)
@@ -33,8 +38,7 @@ export function SimpleCanvas(): JSX.Element {
   const [vertexVisibility, setVertexVisibility] = useState<boolean[]>([]);
   const [vertexColors, setVertexColors] = useState<string[]>([]);
   const [highlightedVertices, setHighlightedVertices] = useState<boolean[]>([]);
-
-  // Keyboard controls for shortcut key
+  
   const map = useMemo(
     () => [
       { name: controls.FRONT, keys: ["1"] },
@@ -105,6 +109,7 @@ export function SimpleCanvas(): JSX.Element {
   }, [geometryData]);
 
   return (
+    <CanvasProvider>
     <KeyboardControls map={map}>
       <div className="w-full h-full">
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
@@ -148,6 +153,8 @@ export function SimpleCanvas(): JSX.Element {
           setIsTransform={setIsTransform} 
           setIsChangePivot={setIsChangePivot}  
         />
+          <ViewPanel />
+          <ThemeToggle />
         <ControlPanel  
           geometryData={geometryData} 
           faceVisibility={faceVisibility} 
@@ -169,5 +176,6 @@ export function SimpleCanvas(): JSX.Element {
         />
       </div>
     </KeyboardControls>
+    </CanvasProvider>
   )
 }

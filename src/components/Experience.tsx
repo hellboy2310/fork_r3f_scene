@@ -2,10 +2,19 @@
 
 import { GeometryData } from '@/types/geometry'
 import { GeometryParser, ParsedGeometry } from '@/utils/geometry-parser'
-import { OrbitControls, GizmoHelper, GizmoViewport, OrthographicCamera, PerspectiveCamera, PivotControls, Edges } from '@react-three/drei'
+import { OrbitControls, GizmoHelper, GizmoViewport, OrthographicCamera, PerspectiveCamera, PivotControls, Edges, useKeyboardControls } from '@react-three/drei'
 import { ThreeEvent } from '@react-three/fiber'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, 
+         useRef, 
+         useState, 
+         useMemo, 
+         Suspense } from 'react'
 import * as THREE from 'three'
+import Model from './Model'
+import { useCanvas } from '@/contexts/CanvasContext'
+import controls from '@/constants/controls'
+
+
 
 interface ExperienceProps {
     useOrtho: boolean
@@ -45,32 +54,32 @@ export const pivotData: PivotAnchor[] = [
     {
         "name": "corner",
         "position": [-1, 1, -1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 2
     },
     {
         "name": "corner",
         "position": [1, 1, -1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 3
     },
     {
         "name": "corner",
         "position": [-1, -1, 1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 4
     },
     {
         "name": "corner",
         "position": [1, -1, 1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 5
     },
     {
         "name": "corner",
         "position": [-1, 1, 1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 6
     },
     {
         "name": "corner",
         "position": [1, 1, 1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 7
     },
     {
         "name": "edge",
@@ -95,17 +104,17 @@ export const pivotData: PivotAnchor[] = [
     {
         "name": "edge",
         "position": [1, -1, 0],
-        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2]
+        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2] // done 12
     },
     {
         "name": "edge",
         "position": [0, 1, -1],
-        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2]
+        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2] // done 13
     },
     {
         "name": "edge",
         "position": [-1, 1, 0],
-        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2]
+        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2] // done 14
     },
     {
         "name": "edge",
@@ -115,37 +124,37 @@ export const pivotData: PivotAnchor[] = [
     {
         "name": "edge",
         "position": [0, -1, 1],
-        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2]
+        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2] // done 16
     },
     {
         "name": "edge",
         "position": [-1, 0, 1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 17
     },
     {
         "name": "edge",
         "position": [1, 0, 1],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 18
     },
     {
         "name": "edge",
         "position": [0, 1, 1],
-        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2]
+        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2] // done 19
     },
     {
         "name": "face",
         "position": [0, 0, 1],
-        "rotation": [0, 0, 0]
+        "rotation": [0, 0, 0] // done 20
     },
     {
         "name": "face",
         "position": [0, 1, 0],
-        "rotation": [0, Math.PI / 2, 0]
+        "rotation": [0, Math.PI / 2, 0] // done 21
     },
     {
         "name": "face",
         "position": [1, 0, 0],
-        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2]
+        "rotation": [Math.PI, Math.PI / 2, Math.PI / 2] // done 22
     },
     {
         "name": "face",
@@ -164,7 +173,7 @@ export const pivotData: PivotAnchor[] = [
     },
 ]
 
-function FaceMesh({ 
+const FaceMesh = ({ 
   vertices, 
   normals, 
   color, 
@@ -180,7 +189,7 @@ function FaceMesh({
   visible: boolean;
   faceIndex: number;
   indices?: number[];
-}) {
+}) => {
   const geometry = useMemo(() => {
     const geom = new THREE.BufferGeometry();
     geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -203,7 +212,7 @@ function FaceMesh({
   );
 }
 
-function WireframeMesh({ edges, color = '#333333', edgeIndex, visible = true, highlighted = false }: { edges: number[]; color?: string; edgeIndex: number; visible?: boolean; highlighted?: boolean}) {
+const WireframeMesh = ({ edges, color = '#333333', edgeIndex, visible = true, highlighted = false }: { edges: number[]; color?: string; edgeIndex: number; visible?: boolean; highlighted?: boolean}) => {
   const geometry = useMemo(() => {
     if (!edges || edges.length === 0) return null;
     
@@ -224,13 +233,13 @@ function WireframeMesh({ edges, color = '#333333', edgeIndex, visible = true, hi
   );
 }
 
-function VertexMesh({ position, color = '#ff0000', vertexIndex, visible = true, highlighted = false }: { 
+const VertexMesh = ({ position, color = '#ff0000', vertexIndex, visible = true, highlighted = false }: { 
   position: [number, number, number]; 
   color?: string; 
   vertexIndex: number;
   visible?: boolean;
   highlighted?: boolean;
-}) {
+}) => {
   if (!visible) return null;
 
   const finalColor = highlighted ? '#ffff00' : color; // Yellow when highlighted
@@ -244,7 +253,7 @@ function VertexMesh({ position, color = '#ff0000', vertexIndex, visible = true, 
   );
 }
 
-function GeometryScene({ geometryData, faceVisibility, faceColors, edgeVisibility, edgeColors, highlightedEdges, vertexVisibility, vertexColors, highlightedVertices }: { geometryData: GeometryData; faceVisibility: boolean[]; faceColors: string[]; edgeVisibility: boolean[]; edgeColors: string[]; highlightedEdges: boolean[]; vertexVisibility: boolean[]; vertexColors: string[]; highlightedVertices: boolean[]}) {
+const GeometryScene = ({ geometryData, faceVisibility, faceColors, edgeVisibility, edgeColors, highlightedEdges, vertexVisibility, vertexColors, highlightedVertices }: { geometryData: GeometryData; faceVisibility: boolean[]; faceColors: string[]; edgeVisibility: boolean[]; edgeColors: string[]; highlightedEdges: boolean[]; vertexVisibility: boolean[]; vertexColors: string[]; highlightedVertices: boolean[]}) => {
   const [parsedGeometry, setParsedGeometry] = useState<ParsedGeometry | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -398,6 +407,58 @@ const Experience = ({
     const perspectiveRef = useRef<THREE.PerspectiveCamera>(null)
     const meshRef = useRef<THREE.Mesh>(null)
 
+    // Keyboard controls 
+    const frontShortcutKey = useKeyboardControls((state) => state[controls.FRONT])
+    const backShortcutKey = useKeyboardControls((state) => state[controls.BACK])
+    const leftShortcutKey = useKeyboardControls((state) => state[controls.LEFT])
+    const rightShortcutKey = useKeyboardControls((state) => state[controls.RIGHT])
+    const topShortcutKey = useKeyboardControls((state) => state[controls.TOP])
+    const bottomShortcutKey = useKeyboardControls((state) => state[controls.BOTTOM])
+    const orthoShortcutKey = useKeyboardControls((state) => state[controls.ORTHO])
+    const transformShortcutKey = useKeyboardControls((state) => state[controls.TRANSFORM])
+
+    // Handle keyboard shortcuts
+    useEffect(() => {
+        if (frontShortcutKey) {
+            setCameraPosition([0, 0, 5])
+            setUseOrtho(false)
+        } else if (backShortcutKey) {
+            setCameraPosition([0, 0, -5])
+            setUseOrtho(false)
+        } else if (leftShortcutKey) {
+            setCameraPosition([-5, 0, 0])
+            setUseOrtho(false)
+        } else if (rightShortcutKey) {
+            setCameraPosition([5, 0, 0])
+            setUseOrtho(false)
+        } else if (topShortcutKey) {
+            setCameraPosition([0, 5, 0])
+            setUseOrtho(false)
+        } else if (bottomShortcutKey) {
+            setCameraPosition([0, -5, 0])
+            setUseOrtho(false)
+        } else if (orthoShortcutKey) {
+            setCameraPosition([3, 3, 3])
+            setUseOrtho((prev) => !prev)
+        }
+
+        if (transformShortcutKey) {
+            setIsTransform((prev) => !prev)
+        }
+    }, [
+        frontShortcutKey,
+        backShortcutKey,
+        leftShortcutKey,
+        rightShortcutKey,
+        topShortcutKey,
+        bottomShortcutKey,
+        orthoShortcutKey,
+        transformShortcutKey,
+        setCameraPosition,
+        setUseOrtho,
+        setIsTransform
+    ])
+
     useEffect(() => {
         if (useOrtho) {
           orthoRef.current?.lookAt(0, 0, 0)
@@ -443,37 +504,6 @@ const Experience = ({
 
     const raycaster = useMemo(() => new THREE.Raycaster(), [])
     const mouse = useMemo(() => new THREE.Vector2(), [])
-
-    useEffect(() => {
-        const handleWindowClick = (event: MouseEvent) => {
-            if (!meshRef.current) return
-
-            const canvas = document.querySelector('canvas')
-            if (event.target !== canvas) return
-      
-            // Calculate mouse normalized coords for raycaster
-            const mouseX = (event.clientX / window.innerWidth) * 2 - 1
-            const mouseY = -(event.clientY / window.innerHeight) * 2 + 1
-            const mouseVec = new THREE.Vector2(mouseX, mouseY)
-        
-            // Use the currently active camera (orthographic or perspective)
-            const camera = useOrtho ? orthoRef.current : perspectiveRef.current
-            if (!camera) return
-        
-            raycaster.setFromCamera(mouseVec, camera)
-            const intersects = raycaster.intersectObject(meshRef.current)
-        
-            if (intersects.length === 0) {
-                // Clicked outside mesh
-                setIsSelected(false)
-            }
-        }
-      
-        window.addEventListener('click', handleWindowClick)
-        return () => {
-          window.removeEventListener('click', handleWindowClick)
-        }
-    }, [useOrtho, raycaster])
 
     useEffect(() => {
         const handleClick = () => {
@@ -545,8 +575,12 @@ const Experience = ({
                 <PerspectiveCamera ref={perspectiveRef} makeDefault position={cameraPosition} fov={50} near={0.1} far={1000} />
             )}
 
+            <OrbitControls ref={orbitControlsRef} enableDamping={false} minDistance={1} maxDistance={10} makeDefault />
+
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} />
+            
+            {showGrid && <Grid infiniteGrid />}
 
             <PivotControls
               anchor={pivotData[pivotDataIndex].position}
@@ -589,7 +623,7 @@ const Experience = ({
 
             <OrbitControls  enableDamping={false} minDistance={1} maxDistance={100} makeDefault />
             <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
-                <GizmoViewport />
+                <GizmoViewport />   
             </GizmoHelper>
         </>
     )

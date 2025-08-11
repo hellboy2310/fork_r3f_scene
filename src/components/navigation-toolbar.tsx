@@ -1,12 +1,12 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
-import { useTheme } from 'next-themes'
-import { Rnd } from 'react-rnd'
+import { useEffect } from 'react'
 import Image from 'next/image'
-import { Sun, Moon } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useKeyboardControls } from '@react-three/drei'
+import { useTheme } from 'next-themes'
 import controls from '@/constants/controls'
+import { CollapsiblePanel } from './collapsible-panel'
 
 interface ControlsInterfaceProps {
   setCameraPosition: (pos: [number, number, number]) => void
@@ -23,7 +23,7 @@ type ButtonAction =
   | { type: 'reset' }
   | { type: 'toggle', feature: string }
 
-const getViewButtons = (theme: string):  Array<{ id: string, icon: string, action: ButtonAction, tooltip: string }> => [
+const getViewButtons = (theme: string = 'dark'):  Array<{ id: string, icon: string, action: ButtonAction, tooltip: string }> => [
   { id: 'orthographic', icon: `/icons/${theme}/iso.svg`, action: { type: 'position', position: [3, 3, 3] }, tooltip: 'Orthographic View' },
   { id: 'front', icon: `/icons/${theme}/front.svg`, action: { type: 'position', position: [0, 0, 5] }, tooltip: 'Front View' },
   { id: 'rear', icon: `/icons/${theme}/rear.svg`, action: { type: 'position', position: [0, 0, -5] }, tooltip: 'Rear View' },
@@ -37,15 +37,18 @@ const getViewButtons = (theme: string):  Array<{ id: string, icon: string, actio
   { id: 'grid', icon: `/icons/${theme}/grid.svg`, action: { type: 'toggle', feature: 'grid' }, tooltip: 'Toggle Grid' },
   { id: 'axes', icon: `/icons/${theme}/axes.svg`, action: { type: 'toggle', feature: 'axes' }, tooltip: 'Toggle Axes' },
   { id: 'axes0', icon: `/icons/${theme}/axes0.svg`, action: { type: 'toggle', feature: 'axes0' }, tooltip: 'Toggle Origin Axes' },
-  { id: 'perspective', icon: `/icons/${theme}/perspective.svg`, action: { type: 'toggle', feature: 'perspective' }, tooltip: 'Toggle Perspective' },
-  { id: 'extrude', icon: `/icons/${theme}/plane.svg`, action: { type: 'toggle', feature: 'extrude' }, tooltip: 'Extrude Mode' },
 ]
 
-// External toolbar component that renders outside Canvas
-export const NavigationToolbar: React.FC<ControlsInterfaceProps> = ({ setCameraPosition, setUseOrtho, isTransform, isChangePivot, setIsTransform, setIsChangePivot }) =>  {
-  const { theme, setTheme } = useTheme()
-  const currentTheme = theme === 'light' ? 'light' : 'dark'
-  const viewButtons = getViewButtons(currentTheme)
+export const NavigationToolbar: React.FC<ControlsInterfaceProps> = ({ 
+  setCameraPosition, 
+  setUseOrtho, 
+  isTransform, 
+  isChangePivot, 
+  setIsTransform, 
+  setIsChangePivot 
+}) => {
+  const { theme } = useTheme()
+  const viewButtons = getViewButtons(theme || 'dark')
 
   const handleAction = (action: ButtonAction) => {
     switch (action.type) {
@@ -68,9 +71,6 @@ export const NavigationToolbar: React.FC<ControlsInterfaceProps> = ({ setCameraP
     return
   }
 
-  const toggleTheme = useCallback(() => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }, [theme, setTheme])
 
   // Keyboard controls 
   const frontShortcutKey = useKeyboardControls((state) => state[controls.FRONT])
@@ -125,63 +125,36 @@ export const NavigationToolbar: React.FC<ControlsInterfaceProps> = ({ setCameraP
   ])
 
   return (
-      <Rnd
-        default={{
-          x: typeof window !== 'undefined' ? window.innerWidth - 80 : 800,
-          y: 16,
-          width: 66,
-          height: 'auto',
-        }}
-        enableResizing={false}
-        bounds="parent"
-        dragHandleClassName="drag-handle"
-        style={{ zIndex: 100 }}
-      >
-        <div className="w-full h-auto shadow-lg border border-border/50 rounded-lg bg-card">
-          {/* Dedicated drag handle */}
-          <div className="drag-handle cursor-move w-full h-3 flex items-center justify-center rounded-t-lg bg-muted/30 hover:bg-muted/50 transition-colors border-b border-border/30">
-            <div className="flex space-x-0.5">
-              <div className="w-1 h-1 rounded-full bg-muted-foreground/40"></div>
-              <div className="w-1 h-1 rounded-full bg-muted-foreground/40"></div>
-              <div className="w-1 h-1 rounded-full bg-muted-foreground/40"></div>
-            </div>
-          </div>
-          <div className="flex flex-col space-y-1 items-center justify-center p-1">
-            {/* Theme Toggle Button - at the top, spans both columns */}
-            <div className="w-full flex justify-center">
-              <button
-                className="w-6 h-6 hover:bg-accent rounded-lg flex items-center justify-center transition-colors"
-                onClick={toggleTheme}
-                title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-              >
-                {theme === 'light' ? (
-                  <Moon className="h-6 w-6" />
-                ) : (
-                  <Sun className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-            
-            {/* Navigation Buttons in 2-column grid */}
-            <div className="grid grid-cols-2 gap-1">
-              {viewButtons.map((button) => (
-                <button
-                  key={button.id}
-                  className="w-7 h-7 p-0 hover:bg-accent rounded-lg flex items-center justify-center transition-colors"
-                  onClick={() => handleAction(button.action)}
-                  title={button.tooltip}
-                >
-                  <Image
-                    src={button.icon}
-                    alt={button.id}
-                    width={22}
-                    height={22}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
+    <CollapsiblePanel
+      defaultPosition={{
+        x: -16, // 16px from right edge (matching control panel margin)
+        y: 60
+      }}
+      expandedSize={{ width: 66, height: 'auto' }}
+      headerLayout="reversed"
+      expansionDirection="left"
+      collapsedIcon={<Menu className="h-5 w-5" />}
+    >
+      <div className="flex flex-col space-y-1 items-center justify-center p-1">
+        {/* Navigation Buttons in 2-column grid */}
+        <div className="grid grid-cols-2 gap-1">
+          {viewButtons.map((button) => (
+            <button
+              key={button.id}
+              className="w-7 h-7 p-0 hover:bg-accent rounded-lg flex items-center justify-center transition-colors"
+              onClick={() => handleAction(button.action)}
+              title={button.tooltip}
+            >
+              <Image
+                src={button.icon}
+                alt={button.id}
+                width={22}
+                height={22}
+              />
+            </button>
+          ))}
         </div>
-      </Rnd>
+      </div>
+    </CollapsiblePanel>
   )
 }
