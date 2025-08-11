@@ -32,7 +32,6 @@ export interface ParsedGeometry {
 
 export class GeometryParser {
   static parse(geometryData: any): ParsedGeometry {
-    console.log('Parsing geometry data:', geometryData);
     
     if (!geometryData || typeof geometryData !== 'object') {
       return this.createFallback();
@@ -48,8 +47,11 @@ export class GeometryParser {
     };
   }
 
+   /**
+   * Extracts parts from the raw geometry data by checking common property names.
+   * Falls back to a single basic part if no match is found.
+   */
   private static extractParts(data: any): any[] {
-    // Try common array properties
     for (const key of ['parts', 'objects', 'meshes', 'geometries', 'shapes']) {
       if (Array.isArray(data[key]) && data[key].length > 0) {
         return data[key];
@@ -64,11 +66,17 @@ export class GeometryParser {
     return [this.createBasicPart()];
   }
 
+  /**
+   * Checks if an object contains geometry-related arrays (vertices, faces, etc.).
+  */
   private static hasGeometryData(obj: any): boolean {
     return ['vertices', 'triangles', 'faces', 'indices', 'positions']
       .some(key => Array.isArray(obj[key]) && obj[key].length > 0);
   }
 
+  /**
+   * Parses a single part's geometry and metadata into the ParsedGeometry format.
+  */
   private static parsePart(part: any, index: number): ParsedGeometry['parts'][0] {
     const id = part.id || part.name || `part_${index}`;
     const name = part.name || part.id || `Part ${index}`;
@@ -106,6 +114,10 @@ export class GeometryParser {
     return null;
   }
 
+  /**
+  * Creates face groups from triangles to help split meshes logically.
+  * If no group info is provided, defaults to grouping by quads.
+  */
   private static getFaceGroups(part: any, triangles: number[]): Array<{start: number, count: number}> {
     const trianglesPerFace = this.getArray(part, ['triangles_per_face', 'faceCounts']);
     
@@ -127,6 +139,9 @@ export class GeometryParser {
     return groups;
   }
 
+  /**
+  * Builds mesh objects for each face group, including vertices, normals, color, and alpha.
+  */
   private static createMeshes(
     vertices: number[], 
     triangles: number[], 
@@ -211,6 +226,9 @@ export class GeometryParser {
     return normals;
   }
 
+  /**
+   * Generates a list of unique edges from triangles to represent wireframe lines.
+  */
   private static generateEdges(vertices: number[], triangles: number[]): number[] {
     const edges: number[] = [];
     const edgeSet = new Set<string>();
