@@ -514,7 +514,7 @@ export function ControlPanel({
                                 className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-muted/30"
                               >
                                 <Triangle size={14} className="text-green-600" />
-                                <span className="text-gray-100">
+                                <span className="text-foreground">
                                   faces_{currentFaceIndex}
                                 </span>
 
@@ -567,7 +567,7 @@ export function ControlPanel({
                             className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-muted/30"
                           >
                             <Triangle size={14} className="text-orange-500" />
-                            <span className="text-gray-100">edge_{i}</span>
+                            <span className="text-foreground">edge_{i}</span>
 
                             <div className="ml-auto flex items-center gap-2">
                               <button
@@ -614,7 +614,7 @@ export function ControlPanel({
                             className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-muted/30"
                           >
                             <MapPin size={14} className="text-purple-500" />
-                            <span className="text-gray-100">vertex_{i}</span>
+                            <span className="text-foreground">vertex_{i}</span>
 
                             <div className="ml-auto flex items-center gap-2">
                               <button
