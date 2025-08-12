@@ -476,7 +476,7 @@ export function ControlPanel({
             }
             className="group/collapsible"
           >
-            <CollapsibleTrigger className="flex items-center justify-between w-full rounded px-2 py-1.5 hover:bg-muted/40">
+            <CollapsibleTrigger className="flex items-center justify-between w-full rounded  py-1.5 hover:bg-muted/40">
               <div className="flex items-center gap-2">
                 <span className="text-md font-medium">Scene Hierarchy</span>
               </div>
@@ -653,11 +653,17 @@ export function ControlPanel({
 
           {/* === Rest of your dynamic sections === */}
           {ControlPanelSections.map((section) => (
-            <Collapsible key={section.title} title={section.title} defaultOpen className="group/collapsible">
-              <CollapsibleTrigger className="flex items-center justify-between w-full rounded px-2 py-1.5 hover:bg-muted/40">
-                {section.title}
-                <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
-              </CollapsibleTrigger>
+            <Collapsible
+              key={section.title}
+              title={section.title}
+              defaultOpen
+              className="group/collapsible"
+            >
+            <CollapsibleTrigger className="flex items-center justify-between w-full">
+              {section.title}
+              <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
               {section.items.map((item) => (
                 item.title === "Import CAD" ? (
                   <ImportDialog 
@@ -674,7 +680,8 @@ export function ControlPanel({
                   </a>
                 )
               ))}
-            </Collapsible>
+            </CollapsibleContent>
+          </Collapsible>
           ))}
         </div>
       </div>      

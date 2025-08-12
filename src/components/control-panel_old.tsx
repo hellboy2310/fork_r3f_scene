@@ -9,7 +9,6 @@ import {
   BarChart3,
 } from "lucide-react"
 import Link from 'next/link'
-import { CollapsiblePanel } from './collapsible-panel'
 
 type Project = {
   id: number
@@ -79,11 +78,7 @@ export function ControlPanel({ project }: ControlPanelProps) {
   })
 
   return (
-    <CollapsiblePanel
-      defaultPosition={{ x: 16, y: 16 }}
-      expandedSize={{ width: 320, height: 600 }}
-      enableResize={true}
-    >
+    <>
       {/* Header with back button */}
       <div className="flex-1 min-w-0 flex items-center gap-2">
         {project && (
@@ -122,6 +117,6 @@ export function ControlPanel({ project }: ControlPanelProps) {
                 </div>
               ))}
       </div>
-    </CollapsiblePanel>
+    </>
   )
 }
