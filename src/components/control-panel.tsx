@@ -41,6 +41,7 @@ type ControlPanelProps = {
   onHighlightedVerticesChange?: (h: boolean[]) => void;
 }
 
+import { ImportDialog } from "@/components/import-dialog"
 
 const ControlPanelSections = [
   {
@@ -137,6 +138,11 @@ export function ControlPanel({
     vertices: 0,
     triangles: 0,
   });
+
+  const handleFileUploaded = (filename: string) => {
+    console.log('File uploaded successfully:', filename)
+    // TODO: Add logic to load the uploaded CAD file into the 3D scene
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -431,7 +437,7 @@ export function ControlPanel({
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed top-4 left-4 p-2 bg-card border rounded-lg shadow-lg hover:bg-muted/50 transition-colors z-50"
+        className="fixed top-4 left-4 p-2 bg-card border rounded-lg shadow-lg hover:bg-muted transition-colors z-50"
       >
         <Menu className="h-4 w-4 text-muted-foreground" />
       </button>
@@ -446,19 +452,18 @@ export function ControlPanel({
       dragHandleClassName="drag-handle"
       style={{ zIndex: 100 }}
     >
-<div className="h-full w-full bg-card/50 border rounded-lg shadow-lg backdrop-blur-sm">
-        <div className="h-8 bg-muted/30 rounded-t-lg border-b px-3 flex items-center justify-between">
+      <div className="h-full w-full bg-card border rounded-lg shadow-lg">
+        <div className="h-8 bg-muted rounded-t-lg border-b px-3 flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">Control Panel</span>
-
-          <div className="drag-handle cursor-move px-3 py-1 hover:bg-muted/50 rounded transition-colors flex items-center justify-center">
-            <Grip className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" />
+          <div className="drag-handle cursor-move px-3 py-1 hover:bg-muted rounded transition-colors flex items-center justify-center">
+            <Grip className="h-4 w-4 text-muted-foreground hover:text-muted-foreground" />
           </div>
 
           <button
             onClick={() => setIsVisible(false)}
-            className="p-2 hover:bg-muted/50 rounded transition-colors"
+            className="p-2 hover:bg-muted rounded transition-colors"
           >
-            <PanelLeftClose className="h-4 w-4 text-muted-foreground/60" />
+            <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
@@ -653,8 +658,13 @@ export function ControlPanel({
                 {section.title}
                 <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
               </CollapsibleTrigger>
-              <CollapsibleContent>
-                {section.items.map((item) => (
+              {section.items.map((item) => (
+                item.title === "Import CAD" ? (
+                  <ImportDialog 
+                    key={item.title}
+                    onFileUploaded={handleFileUploaded}
+                  />
+                ) : (
                   <a
                     key={item.title}
                     href={item.url}
@@ -662,8 +672,8 @@ export function ControlPanel({
                   >
                     {item.title}
                   </a>
-                ))}
-              </CollapsibleContent>
+                )
+              ))}
             </Collapsible>
           ))}
         </div>

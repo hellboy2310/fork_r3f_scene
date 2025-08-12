@@ -105,7 +105,7 @@ export function ViewPanel({
     return (
       <button 
         onClick={() => setIsVisible(true)}
-        className="fixed top-16 right-4 p-2 bg-card border rounded-lg shadow-lg hover:bg-muted/50 transition-colors z-50"
+        className="fixed top-16 right-4 p-2 bg-card border rounded-lg shadow-lg hover:bg-muted transition-colors z-50"
       >
         <Menu className="h-4 w-4 text-muted-foreground" />
       </button>
@@ -120,16 +120,16 @@ export function ViewPanel({
       dragHandleClassName="drag-handle"
       style={{ zIndex: 100 }}
     >
-      <div className="h-full w-full bg-card/50 border rounded-lg shadow-lg backdrop-blur-sm">
-        <div className="h-8 bg-muted/30 rounded-t-lg border-b flex items-center">
+      <div className="h-full w-full bg-card border rounded-lg shadow-lg">
+        <div className="h-8 bg-muted rounded-t-lg border-b flex items-center">
           <button 
             onClick={() => setIsVisible(false)}
-            className="p-2 hover:bg-muted/50 rounded transition-colors"
+            className="p-2 hover:bg-muted rounded transition-colors"
           >
-            <PanelLeftClose className="h-4 w-4 text-muted-foreground/60" />
+            <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div className="drag-handle cursor-move px-1 py-1 hover:bg-muted/50 rounded transition-colors flex items-center justify-center">
-            <Grip className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" />
+          <div className="drag-handle cursor-move px-1 py-1 hover:bg-muted rounded transition-colors flex items-center justify-center">
+            <Grip className="h-4 w-4 text-muted-foreground hover:text-muted-foreground" />
           </div>
         </div>
         <div className="p-1 h-[calc(100%-2rem)] overflow-auto grid gap-1" style={{ gridTemplateColumns: 'repeat(2, minmax(32px, 1fr))' }}>
