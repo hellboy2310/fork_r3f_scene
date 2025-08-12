@@ -473,8 +473,7 @@ export function ControlPanel({
           >
             <CollapsibleTrigger className="flex items-center justify-between w-full rounded px-2 py-1.5 hover:bg-muted/40">
               <div className="flex items-center gap-2">
-                <Box className="h-4 w-4" />
-                <span className="text-sm font-medium">Scene Hierarchy</span>
+                <span className="text-md font-medium">Scene Hierarchy</span>
               </div>
               <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
             </CollapsibleTrigger>

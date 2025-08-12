@@ -5,7 +5,7 @@ def get_model_json(model_name: str) -> dict:
     models_map = {
         "box1": models_data.sample_box,
         "box2": models_data.sample_sphere,
-        "box3": getattr(models_data, "sample_pyramid", None),
+        "box3": models_data.sample_pyramid,
     }
 
     model = models_map.get(model_name.lower())
